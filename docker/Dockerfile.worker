@@ -1,0 +1,102 @@
+# ================================================================
+# FluxFile Worker Dockerfile
+# Includes: FFmpeg, LibreOffice, Sharp (via Node), ImageMagick
+# ================================================================
+
+FROM node:20-slim AS base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # FFmpeg for audio/video conversion
+    ffmpeg \
+    # LibreOffice for document conversion
+    libreoffice-core \
+    libreoffice-writer \
+    libreoffice-calc \
+    libreoffice-impress \
+    # ImageMagick for additional image processing
+    imagemagick \
+    # Sharp native dependencies
+    libvips-dev \
+    # Fonts for document rendering
+    fonts-liberation \
+    fonts-dejavu-core \
+    fontconfig \
+    # General utilities
+    curl \
+    ca-certificates \
+    # Clean up
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -fv
+
+# Setup pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+WORKDIR /app
+
+# ================================================================
+# Dependencies stage
+# ================================================================
+FROM base AS deps
+
+# Copy workspace configuration files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc* turbo.json tsconfig.json ./
+COPY apps/worker/package.json apps/worker/
+COPY packages/types/package.json packages/types/
+COPY packages/config/package.json packages/config/
+COPY packages/db/package.json packages/db/
+COPY packages/storage/package.json packages/storage/
+COPY packages/queue/package.json packages/queue/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --filter @fluxfile/worker...
+
+# ================================================================
+# Build stage
+# ================================================================
+FROM deps AS build
+
+# Copy source code
+COPY packages/ packages/
+COPY apps/worker/ apps/worker/
+
+# Generate Prisma client
+RUN pnpm --filter @fluxfile/db generate
+
+# Build all packages
+RUN pnpm --filter @fluxfile/worker... build
+
+# ================================================================
+# Production stage
+# ================================================================
+FROM base AS production
+
+WORKDIR /app
+
+# Copy built artifacts and production dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/apps/worker/dist ./apps/worker/dist
+COPY --from=build /app/apps/worker/package.json ./apps/worker/
+COPY --from=build /app/package.json ./
+COPY --from=build /app/pnpm-workspace.yaml ./
+COPY --from=build /app/turbo.json ./
+
+# Create temp directory for conversions
+RUN mkdir -p /tmp/fluxfile-worker && chown node:node /tmp/fluxfile-worker
+
+# Run as non-root user
+USER node
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD node -e "process.exit(0)"
+
+# Set environment
+ENV NODE_ENV=production
+ENV WORKER_ID=worker-docker
+
+CMD ["node", "apps/worker/dist/index.js"]

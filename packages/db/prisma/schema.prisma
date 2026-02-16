@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// USER & AUTH MODELS
+// ========================================
+
+model User {
+  id                    String          @id @default(cuid())
+  email                 String          @unique
+  name                  String?
+  emailVerified         Boolean         @default(false)
+  accountTier           AccountTier     @default(FREE)
+  role                  UserRole        @default(USER)
+  
+  // Enterprise relationship
+  enterpriseId          String?
+  enterprise            Enterprise?     @relation(fields: [enterpriseId], references: [id])
+  
+  // Quota tracking
+  dailyConversionsUsed  Int             @default(0)
+  lastResetDate         DateTime        @default(now())
+  
+  // Stripe
+  stripeCustomerId      String?         @unique
+  stripeSubscriptionId  String?         @unique
+  
+  // Relationships
+  jobs                  Job[]
+  sessions              Session[]
+  accounts              Account[]
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([email])
+  @@index([enterpriseId])
+  @@index([accountTier])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String   @unique
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  provider          String
+  providerAccountId String
+  
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  expiresAt         DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  id         String    @id @default(cuid())
+  email      String
+  token      String    @unique
+  type       TokenType
+  expiresAt  DateTime
+  
+  createdAt  DateTime  @default(now())
+  
+  @@index([email])
+  @@index([token])
+}
+
+// ========================================
+// CONVERSION JOBS
+// ========================================
+
+model Job {
+  id                    String          @id @default(cuid())
+  userId                String?
+  user                  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // File details
+  inputFileKey          String
+  outputFileKey         String?
+  inputFormat           String
+  outputFormat          String
+  inputFileSize         BigInt
+  outputFileSize        BigInt?
+  
+  // Conversion settings
+  qualityPreset         String?
+  customSettings        Json?
+  
+  // Status tracking
+  status                JobStatus       @default(PENDING)
+  progress              Int             @default(0)
+  currentStage          String?
+  errorMessage          String?
+  errorType             ErrorType?
+  
+  // Timing
+  queuedAt              DateTime        @default(now())
+  startedAt             DateTime?
+  completedAt           DateTime?
+  processingTimeMs      Int?
+  estimatedTimeMs       Int?
+  
+  // Worker info
+  workerId              String?
+  workerAttempts        Int             @default(0)
+  
+  // Cleanup
+  downloadExpiresAt     DateTime?
+  fileDeletedAt         DateTime?
+  
+  // Metadata
+  ipAddress             String?
+  userAgent             String?
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([userId, status])
+  @@index([status, queuedAt])
+  @@index([downloadExpiresAt])
+  @@index([createdAt])
+}
+
+// ========================================
+// ENTERPRISE
+// ========================================
+
+model Enterprise {
+  id                    String          @id @default(cuid())
+  companyName           String
+  status                EnterpriseStatus @default(ACTIVE)
+  
+  // Contract
+  contractStartDate     DateTime
+  contractEndDate       DateTime
+  contractDocumentUrl   String?
+  
+  // Limits
+  dailyQuotaOverride    Int?
+  maxFileSizeGB         Float           @default(2)
+  batchSizeLimit        Int             @default(50)
+  dedicatedWorkerCount  Int             @default(0)
+  storageRetentionHours Int             @default(24)
+  
+  // Features
+  auditLogsEnabled      Boolean         @default(true)
+  priorityQueue         Boolean         @default(true)
+  ssoEnabled            Boolean         @default(false)
+  
+  // Billing
+  monthlyFeeUSD         Decimal         @db.Decimal(10, 2)
+  billingEmail          String
+  stripeCustomerId      String?
+  
+  // Contacts
+  salesContactEmail     String
+  
+  // Relationships
+  users                 User[]
+  auditLogs             AuditLog[]
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([status])
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  userId        String?
+  enterpriseId  String?
+  enterprise    Enterprise? @relation(fields: [enterpriseId], references: [id])
+  
+  action        String
+  resourceType  String
+  resourceId    String?
+  metadata      Json?
+  
+  ipAddress     String?
+  userAgent     String?
+  
+  createdAt     DateTime    @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([enterpriseId, createdAt])
+  @@index([createdAt])
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum AccountTier {
+  ANONYMOUS
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum UserRole {
+  USER
+  ENTERPRISE
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum JobStatus {
+  PENDING
+  SCANNING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum ErrorType {
+  CORRUPT_FILE
+  MALWARE_DETECTED
+  WORKER_TIMEOUT
+  WORKER_CRASH
+  UNSUPPORTED_FORMAT
+  FILE_TOO_LARGE
+  QUOTA_EXCEEDED
+  STORAGE_ERROR
+  UNKNOWN
+}
+
+enum EnterpriseStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
