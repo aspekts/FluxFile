@@ -6,7 +6,6 @@ import { DropZone } from '@/components/conversion/drop-zone';
 import { FormatSelector } from '@/components/conversion/format-selector';
 import { ProgressTracker } from '@/components/conversion/progress-tracker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -16,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { requestUploadUrl, uploadFileToR2 } from '@/lib/storage/upload';
 import { getFormatFromMimeType } from '@/lib/validation/file-validation';
-import { ArrowRight, Zap, Shield, Clock, Music, Film, FileText, Image } from 'lucide-react';
+import { ArrowRight, Sparkles, Shield, Clock, Music, Film, FileText, Image } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ConversionState = 'idle' | 'uploading' | 'converting' | 'complete' | 'error';
@@ -105,212 +104,193 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="container mx-auto max-w-6xl px-4 py-16 text-center">
-        <h1 className="mb-4 text-5xl font-bold tracking-tight sm:text-6xl">
-          Convert any file, <span className="text-primary">instantly</span>
-        </h1>
-        <p className="mx-auto mb-12 max-w-2xl text-lg text-muted-foreground">
-          Fast, secure file conversion with enterprise-grade privacy. Audio, video, documents, and
-          images - all in one place.
-        </p>
+      <section className="mx-auto max-w-3xl px-4 py-12 md:py-20">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight-h1 md:text-6xl">
+            Convert any file, <span className="text-primary">instantly</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
+            Fast, secure file conversion with enterprise-grade privacy. Audio, video, documents, and
+            images — all in one place.
+          </p>
+        </div>
 
         {/* Conversion Interface */}
-        <Card className="mx-auto max-w-2xl">
-          <CardContent className="space-y-6 p-6">
-            {/* Drop Zone */}
-            <DropZone
-              onFileSelect={handleFileSelect}
-              disabled={state === 'uploading' || state === 'converting'}
-            />
+        <div className="mt-12 space-y-6">
+          {/* Drop Zone */}
+          <DropZone
+            onFileSelect={handleFileSelect}
+            disabled={state === 'uploading' || state === 'converting'}
+          />
 
-            {/* Format Selection */}
-            {file && inputFormat && state === 'idle' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <p className="mb-1 text-sm font-medium text-muted-foreground">From</p>
-                    <p className="rounded-md border bg-muted/50 p-2 text-center font-medium">
-                      {inputFormat.toUpperCase()}
-                    </p>
-                  </div>
-                  <ArrowRight className="mt-5 h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <FormatSelector
-                      inputFormat={inputFormat}
-                      selectedFormat={outputFormat}
-                      onFormatChange={setOutputFormat}
-                    />
-                  </div>
+          {/* Format Selection */}
+          {file && inputFormat && state === 'idle' && (
+            <div className="space-y-4 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    From
+                  </p>
+                  <p className="rounded-lg border border-border/60 bg-background p-2.5 text-center font-mono text-sm font-medium">
+                    {inputFormat.toUpperCase()}
+                  </p>
                 </div>
-
-                {/* Quality Preset */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Quality</label>
-                  <Select value={qualityPreset} onValueChange={setQualityPreset}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low - Smaller file</SelectItem>
-                      <SelectItem value="standard">Standard - Balanced</SelectItem>
-                      <SelectItem value="high">High - Best quality</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Convert Button */}
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handleConvert}
-                  disabled={!outputFormat}
-                >
-                  <Zap className="mr-2 h-4 w-4" />
-                  Convert to {outputFormat ? outputFormat.toUpperCase() : '...'}
-                </Button>
-              </div>
-            )}
-
-            {/* Upload Progress */}
-            {state === 'uploading' && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Uploading... {uploadProgress}%</p>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${uploadProgress}%` }}
+                <ArrowRight className="mt-5 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <FormatSelector
+                    inputFormat={inputFormat}
+                    selectedFormat={outputFormat}
+                    onFormatChange={setOutputFormat}
                   />
                 </div>
               </div>
-            )}
 
-            {/* Conversion Progress */}
-            {(state === 'converting' || state === 'complete') && jobId && (
-              <ProgressTracker
-                jobId={jobId}
-                onComplete={handleConversionComplete}
-                onError={(error) => {
-                  setState('error');
-                  toast.error(error);
-                }}
-              />
-            )}
+              {/* Quality Preset */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Quality
+                </label>
+                <Select value={qualityPreset} onValueChange={setQualityPreset}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low — Smaller file</SelectItem>
+                    <SelectItem value="standard">Standard — Balanced</SelectItem>
+                    <SelectItem value="high">High — Best quality</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Reset */}
-            {(state === 'complete' || state === 'error') && (
-              <Button variant="outline" onClick={handleReset} className="w-full">
-                Convert another file
+              {/* Convert Button */}
+              <Button size="lg" className="w-full" onClick={handleConvert} disabled={!outputFormat}>
+                <Sparkles className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                Convert to {outputFormat ? outputFormat.toUpperCase() : '...'}
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+
+          {/* Upload Progress */}
+          {state === 'uploading' && (
+            <div className="space-y-3 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Uploading...</p>
+                <p className="font-mono text-sm text-muted-foreground">{uploadProgress}%</p>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Conversion Progress */}
+          {(state === 'converting' || state === 'complete') && jobId && (
+            <ProgressTracker
+              jobId={jobId}
+              onComplete={handleConversionComplete}
+              onError={(error) => {
+                setState('error');
+                toast.error(error);
+              }}
+            />
+          )}
+
+          {/* Reset */}
+          {(state === 'complete' || state === 'error') && (
+            <Button variant="outline" onClick={handleReset} className="w-full">
+              Convert another file
+            </Button>
+          )}
+        </div>
       </section>
 
       {/* Features Section */}
-      <section className="border-t bg-muted/30 py-16">
-        <div className="container mx-auto max-w-6xl px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold">Why FluxFile?</h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <Zap className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Lightning Fast</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Powered by dedicated workers running FFmpeg, Sharp, and LibreOffice. Most
-                  conversions complete in seconds.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <Shield className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Zero-Knowledge Privacy</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Your files are encrypted in transit and at rest. Automatically deleted after 24
-                  hours. We never access your content.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <Clock className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>No Waiting</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Priority queue for Pro and Enterprise users. Real-time progress tracking with
-                  estimated completion times.
-                </p>
-              </CardContent>
-            </Card>
+      <section className="border-t border-border/40 py-16 md:py-20">
+        <div className="mx-auto max-w-3xl px-4">
+          <h2 className="mb-12 text-center text-2xl font-semibold tracking-tight-h2">
+            Why FluxFile?
+          </h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                icon: Sparkles,
+                title: 'Lightning Fast',
+                desc: 'Powered by dedicated workers running FFmpeg, Sharp, and LibreOffice. Most conversions complete in seconds.',
+              },
+              {
+                icon: Shield,
+                title: 'Zero-Knowledge Privacy',
+                desc: 'Your files are encrypted in transit and at rest. Automatically deleted after 24 hours. We never access your content.',
+              },
+              {
+                icon: Clock,
+                title: 'No Waiting',
+                desc: 'Priority queue for Pro and Enterprise users. Real-time progress tracking with estimated completion times.',
+              },
+            ].map((feature) => (
+              <div
+                key={feature.title}
+                className="rounded-xl border border-border/60 bg-card p-6 shadow-sm"
+              >
+                <feature.icon className="mb-3 h-5 w-5 text-primary" strokeWidth={1.5} />
+                <h3 className="mb-1.5 text-sm font-semibold">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{feature.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Supported Formats Section */}
-      <section className="py-16">
-        <div className="container mx-auto max-w-6xl px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold">Supported Formats</h2>
-          <div className="grid gap-6 md:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Music className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Audio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  MP3, WAV, FLAC, AAC, OGG, M4A, WMA, OPUS
+      <section className="py-16 md:py-20">
+        <div className="mx-auto max-w-3xl px-4">
+          <h2 className="mb-12 text-center text-2xl font-semibold tracking-tight-h2">
+            Supported Formats
+          </h2>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[
+              { icon: Music, title: 'Audio', formats: 'MP3, WAV, FLAC, AAC, OGG, M4A, WMA, OPUS' },
+              { icon: Film, title: 'Video', formats: 'MP4, MOV, WebM, AVI, MKV, FLV, WMV' },
+              {
+                icon: FileText,
+                title: 'Documents',
+                formats: 'PDF, DOCX, XLSX, PPTX, TXT, ODT, RTF, CSV',
+              },
+              {
+                icon: Image,
+                title: 'Images',
+                formats: 'PNG, JPG, WebP, HEIC, SVG, TIFF, BMP, GIF, ICO',
+              },
+            ].map((cat) => (
+              <div
+                key={cat.title}
+                className="rounded-xl border border-border/60 bg-card p-5 shadow-sm"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <cat.icon className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                  <h3 className="text-sm font-semibold">{cat.title}</h3>
+                </div>
+                <p className="font-mono text-xs leading-relaxed text-muted-foreground">
+                  {cat.formats}
                 </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Film className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Video</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">MP4, MOV, WebM, AVI, MKV, FLV, WMV</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  PDF, DOCX, XLSX, PPTX, TXT, ODT, RTF, CSV
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Image className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Images</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  PNG, JPG, WebP, HEIC, SVG, TIFF, BMP, GIF, ICO
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="border-t bg-muted/30 py-16">
-        <div className="container mx-auto max-w-6xl px-4 text-center">
-          <h2 className="mb-4 text-3xl font-bold">Ready for more?</h2>
-          <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
+      <section className="border-t border-border/40 py-16 md:py-20">
+        <div className="mx-auto max-w-3xl px-4 text-center">
+          <h2 className="mb-3 text-2xl font-semibold tracking-tight-h2">Ready for more?</h2>
+          <p className="mx-auto mb-8 max-w-md text-sm text-muted-foreground">
             Create a free account to unlock higher limits, conversion history, and priority
             processing.
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-3">
             <Button size="lg" asChild>
               <Link href="/signup">Create Free Account</Link>
             </Button>

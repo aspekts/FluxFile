@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File, X, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileType2, X, AlertCircle } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -72,47 +72,52 @@ export function DropZone({
     <div className={cn('space-y-4', className)}>
       {error && (
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" strokeWidth={1.5} />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {selectedFile ? (
-        <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
+        <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background p-4">
           <div className="flex items-center gap-3">
-            <File className="h-8 w-8 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <FileType2 className="h-5 w-5 text-primary" strokeWidth={1.5} />
+            </div>
             <div>
-              <p className="font-medium">{selectedFile.name}</p>
-              <p className="text-sm text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+              <p className="text-sm font-medium">{selectedFile.name}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {formatFileSize(selectedFile.size)}
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={removeFile}>
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" strokeWidth={1.5} />
           </Button>
         </div>
       ) : (
         <div
           {...getRootProps()}
           className={cn(
-            'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors',
+            'group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-all duration-200',
             isDragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50',
+              ? 'scale-[1.01] border-solid border-primary bg-primary/5 shadow-lg shadow-primary/10'
+              : 'border-border hover:border-primary/50 hover:bg-accent/50 shadow-sm',
             disabled && 'cursor-not-allowed opacity-50'
           )}
         >
           <input {...getInputProps()} />
-          <Upload
+          <UploadCloud
             className={cn(
-              'mb-4 h-10 w-10',
+              'mb-4 h-10 w-10 transition-colors',
               isDragActive ? 'text-primary' : 'text-muted-foreground'
             )}
+            strokeWidth={1.5}
           />
-          <p className="mb-1 text-lg font-medium">
+          <p className="mb-1 text-base font-medium">
             {isDragActive ? 'Drop your file here' : 'Drag & drop a file here'}
           </p>
           <p className="text-sm text-muted-foreground">or click to browse your files</p>
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-6 text-xs text-muted-foreground">
             Supports audio, video, document, and image files
           </p>
         </div>

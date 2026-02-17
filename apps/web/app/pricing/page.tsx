@@ -1,13 +1,5 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
 
@@ -71,50 +63,52 @@ const plans = [
 
 export default function PricingPage() {
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-16">
+    <div className="mx-auto max-w-3xl px-4 py-12 md:py-20">
       <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold">Simple, transparent pricing</h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+        <h1 className="mb-3 text-4xl font-bold tracking-tight-h1 md:text-5xl">
+          Simple, transparent pricing
+        </h1>
+        <p className="mx-auto max-w-lg text-base text-muted-foreground">
           Choose the plan that fits your needs. All plans include access to all supported file
           formats and conversion types.
         </p>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         {plans.map((plan) => (
-          <Card
+          <div
             key={plan.name}
-            className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-lg' : ''}`}
+            className={`relative flex flex-col rounded-xl border p-6 ${
+              plan.popular
+                ? 'border-primary bg-card shadow-lg shadow-primary/10'
+                : 'border-border/60 bg-card shadow-sm'
+            }`}
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge>Most Popular</Badge>
               </div>
             )}
-            <CardHeader>
-              <CardTitle className="text-xl">{plan.name}</CardTitle>
-              <CardDescription>{plan.description}</CardDescription>
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">{plan.name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{plan.description}</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">{plan.period}</span>
+                <span className="font-mono text-3xl font-bold">{plan.price}</span>
+                <span className="text-sm text-muted-foreground">{plan.period}</span>
               </div>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" variant={plan.popular ? 'default' : 'outline'} asChild>
-                <Link href={plan.href}>{plan.cta}</Link>
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
+            <ul className="mb-6 flex-1 space-y-2.5">
+              {plan.features.map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} />
+                  <span className="text-sm text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <Button className="w-full" variant={plan.popular ? 'default' : 'outline'} asChild>
+              <Link href={plan.href}>{plan.cta}</Link>
+            </Button>
+          </div>
         ))}
       </div>
     </div>

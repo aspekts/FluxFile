@@ -63,17 +63,21 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+        <h1 className="text-2xl font-semibold tracking-tight-h2">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Welcome back, {user.name || user.email}
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Plan</CardTitle>
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Plan
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Badge variant={tier === 'PRO' || tier === 'ENTERPRISE' ? 'default' : 'secondary'}>
@@ -83,10 +87,12 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today&apos;s Conversions</CardTitle>
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Today&apos;s Conversions
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="font-mono text-2xl font-bold">
               {dailyUsed}
               <span className="text-sm font-normal text-muted-foreground">
                 {' '}
@@ -97,10 +103,12 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Max File Size</CardTitle>
+            <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Max File Size
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="font-mono text-2xl font-bold">
               {Math.round(limits.maxFileSize / (1024 * 1024))} MB
             </div>
           </CardContent>
@@ -110,7 +118,7 @@ export default async function DashboardPage() {
       {/* Conversion History */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Conversions</CardTitle>
+          <CardTitle className="text-sm font-semibold">Recent Conversions</CardTitle>
         </CardHeader>
         <CardContent>
           <ConversionHistory jobs={serializedJobs} />

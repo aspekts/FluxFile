@@ -3,31 +3,39 @@ import { Zap } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="border-t bg-background">
-      <div className="container mx-auto max-w-6xl px-4 py-12">
+    <footer className="border-t border-border/40 bg-background">
+      <div className="container mx-auto max-w-3xl px-4 py-12">
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 font-bold">
-              <Zap className="h-5 w-5 text-primary" />
-              <span className="text-xl">FluxFile</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" strokeWidth={1.5} />
+              <span className="text-sm font-semibold tracking-tight-h2">FluxFile</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Universal file converter with enterprise-grade security and zero-knowledge privacy.
             </p>
           </div>
 
           {/* Product */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Product</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Product
+            </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-sm text-muted-foreground hover:text-primary">
+                <Link
+                  href="/"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   Convert Files
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-sm text-muted-foreground hover:text-primary">
+                <Link
+                  href="/pricing"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   Pricing
                 </Link>
               </li>
@@ -36,22 +44,30 @@ export function Footer() {
 
           {/* Account */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Account</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Account
+            </h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/login" className="text-sm text-muted-foreground hover:text-primary">
+                <Link
+                  href="/login"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   Sign In
                 </Link>
               </li>
               <li>
-                <Link href="/signup" className="text-sm text-muted-foreground hover:text-primary">
+                <Link
+                  href="/signup"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   Sign Up
                 </Link>
               </li>
               <li>
                 <Link
                   href="/dashboard"
-                  className="text-sm text-muted-foreground hover:text-primary"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Dashboard
                 </Link>
@@ -61,12 +77,14 @@ export function Footer() {
 
           {/* Legal */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Legal</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Legal
+            </h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/legal/terms"
-                  className="text-sm text-muted-foreground hover:text-primary"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Terms of Service
                 </Link>
@@ -74,7 +92,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/legal/privacy"
-                  className="text-sm text-muted-foreground hover:text-primary"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Privacy Policy
                 </Link>
@@ -83,8 +101,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 border-t pt-8 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-8 border-t border-border/40 pt-8 text-center">
+          <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} FluxFile. All rights reserved.
           </p>
         </div>

@@ -41,12 +41,12 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg">
+      <div className="container mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-bold">
-          <Zap className="h-5 w-5 text-primary" />
-          <span className="text-xl">FluxFile</span>
+        <Link href="/" className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-primary" strokeWidth={1.5} />
+          <span className="text-lg font-semibold tracking-tight-h2">FluxFile</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -55,8 +55,8 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                pathname === link.href ? 'text-primary' : 'text-muted-foreground'
+              className={`text-sm transition-colors hover:text-foreground ${
+                pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {link.label}
@@ -65,15 +65,22 @@ export function Navbar() {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Theme toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="text-muted-foreground"
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun
+              className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+              strokeWidth={1.5}
+            />
+            <Moon
+              className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+              strokeWidth={1.5}
+            />
             <span className="sr-only">Toggle theme</span>
           </Button>
 
@@ -83,7 +90,7 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallback className="bg-primary/10 text-xs text-primary">
                       {getInitials(session.user.name, session.user.email)}
                     </AvatarFallback>
                   </Avatar>
@@ -129,21 +136,25 @@ export function Navbar() {
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" strokeWidth={1.5} />
+            ) : (
+              <Menu className="h-5 w-5" strokeWidth={1.5} />
+            )}
           </Button>
         </div>
       </div>
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="border-t px-4 py-4 md:hidden">
+        <div className="border-t border-border/40 px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium ${
-                  pathname === link.href ? 'text-primary' : 'text-muted-foreground'
+                className={`text-sm ${
+                  pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -154,7 +165,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Sign in

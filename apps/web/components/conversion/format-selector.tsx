@@ -46,11 +46,11 @@ export function FormatSelector({
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectLabel>
+            <SelectLabel className="font-mono text-xs uppercase tracking-wider">
               {category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Formats'}
             </SelectLabel>
             {outputFormats.map((format) => (
-              <SelectItem key={format} value={format}>
+              <SelectItem key={format} value={format} className="font-mono text-sm">
                 {getFormatLabel(format)}
               </SelectItem>
             ))}

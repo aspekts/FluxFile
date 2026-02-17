@@ -54,9 +54,11 @@ function getStatusBadge(status: string) {
 export function ConversionHistory({ jobs }: ConversionHistoryProps) {
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-lg font-medium text-muted-foreground">No conversions yet</p>
-        <p className="text-sm text-muted-foreground">Your conversion history will appear here.</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm font-medium text-muted-foreground">No conversions yet</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your conversion history will appear here.
+        </p>
       </div>
     );
   }
@@ -64,26 +66,36 @@ export function ConversionHistory({ jobs }: ConversionHistoryProps) {
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Conversion</TableHead>
-          <TableHead>Size</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Duration</TableHead>
-          <TableHead className="text-right">Date</TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Conversion
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Size
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Status
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Duration
+          </TableHead>
+          <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Date
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {jobs.map((job) => (
           <TableRow key={job.id}>
-            <TableCell className="font-medium">
-              {job.inputFormat.toUpperCase()} → {job.outputFormat.toUpperCase()}
+            <TableCell className="font-mono text-sm font-medium">
+              {job.inputFormat.toUpperCase()} &rarr; {job.outputFormat.toUpperCase()}
             </TableCell>
             <TableCell>
-              <span className="text-sm">
+              <span className="font-mono text-sm">
                 {formatFileSize(parseInt(job.inputFileSize))}
                 {job.outputFileSize && (
                   <span className="text-muted-foreground">
-                    {' → '}
+                    {' \u2192 '}
                     {formatFileSize(parseInt(job.outputFileSize))}
                   </span>
                 )}
@@ -92,7 +104,7 @@ export function ConversionHistory({ jobs }: ConversionHistoryProps) {
             <TableCell>{getStatusBadge(job.status)}</TableCell>
             <TableCell>
               {job.processingTimeMs ? (
-                <span className="text-sm">{formatDuration(job.processingTimeMs)}</span>
+                <span className="font-mono text-sm">{formatDuration(job.processingTimeMs)}</span>
               ) : (
                 <span className="text-sm text-muted-foreground">--</span>
               )}

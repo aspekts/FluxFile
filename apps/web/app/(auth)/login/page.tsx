@@ -48,14 +48,14 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
-        <Card className="w-full max-w-md">
+      <div className="flex min-h-[80vh] items-center justify-center px-4">
+        <Card className="w-full max-w-sm">
           <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-              <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Mail className="h-5 w-5 text-primary" strokeWidth={1.5} />
             </div>
-            <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-semibold">Check your email</CardTitle>
+            <CardDescription className="text-sm">
               We sent a sign-in link to <strong>{email}</strong>. Click the link in the email to
               sign in to your account.
             </CardDescription>
@@ -78,11 +78,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-[80vh] items-center justify-center px-4">
+      <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl font-semibold">Welcome back</CardTitle>
+          <CardDescription className="text-sm">
             Enter your email and we&apos;ll send you a sign-in link
           </CardDescription>
         </CardHeader>
@@ -90,12 +90,12 @@ export default function LoginPage() {
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4" strokeWidth={1.5} />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -111,12 +111,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.5} />
                   Sending link...
                 </>
               ) : (
                 <>
-                  <Mail className="mr-2 h-4 w-4" />
+                  <Mail className="mr-2 h-4 w-4" strokeWidth={1.5} />
                   Send sign-in link
                 </>
               )}

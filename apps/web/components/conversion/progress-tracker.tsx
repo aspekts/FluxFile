@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Download, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Download, Clock } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 
 interface ProgressTrackerProps {
@@ -74,9 +74,9 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
 
   if (!job) {
     return (
-      <Card>
+      <Card className="border-border/60 shadow-xl">
         <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" strokeWidth={1.5} />
           <span className="ml-2 text-sm text-muted-foreground">Loading job status...</span>
         </CardContent>
       </Card>
@@ -85,32 +85,32 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
 
   const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
     PENDING: {
-      icon: <Clock className="h-5 w-5" />,
+      icon: <Clock className="h-5 w-5" strokeWidth={1.5} />,
       label: 'Queued',
-      color: 'text-yellow-500',
+      color: 'text-amber-500',
     },
     SCANNING: {
-      icon: <Loader2 className="h-5 w-5 animate-spin" />,
+      icon: <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.5} />,
       label: 'Scanning',
       color: 'text-blue-500',
     },
     PROCESSING: {
-      icon: <Loader2 className="h-5 w-5 animate-spin" />,
+      icon: <Loader2 className="h-5 w-5 animate-spin" strokeWidth={1.5} />,
       label: 'Processing',
       color: 'text-primary',
     },
     COMPLETED: {
-      icon: <CheckCircle className="h-5 w-5" />,
+      icon: <CheckCircle2 className="h-5 w-5" strokeWidth={1.5} />,
       label: 'Completed',
-      color: 'text-green-500',
+      color: 'text-emerald-500',
     },
     FAILED: {
-      icon: <XCircle className="h-5 w-5" />,
+      icon: <XCircle className="h-5 w-5" strokeWidth={1.5} />,
       label: 'Failed',
       color: 'text-destructive',
     },
     CANCELLED: {
-      icon: <XCircle className="h-5 w-5" />,
+      icon: <XCircle className="h-5 w-5" strokeWidth={1.5} />,
       label: 'Cancelled',
       color: 'text-muted-foreground',
     },
@@ -119,16 +119,16 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
   const status = statusConfig[job.status] || statusConfig.PENDING;
 
   return (
-    <Card>
+    <Card className="border-border/60 shadow-xl">
       <CardContent className="space-y-4 p-6">
         {/* Status header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={status.color}>{status.icon}</span>
-            <span className="font-medium">{status.label}</span>
+            <span className="text-sm font-medium">{status.label}</span>
           </div>
-          <Badge variant="outline">
-            {job.inputFormat?.toUpperCase()} → {job.outputFormat?.toUpperCase()}
+          <Badge variant="outline" className="font-mono text-xs">
+            {job.inputFormat?.toUpperCase()} &rarr; {job.outputFormat?.toUpperCase()}
           </Badge>
         </div>
 
@@ -136,12 +136,12 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
         {['PENDING', 'SCANNING', 'PROCESSING'].includes(job.status) && (
           <div className="space-y-2">
             <Progress value={job.progress} />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between font-mono text-xs text-muted-foreground">
               <span>{job.currentStage || 'Waiting...'}</span>
               <span>{job.progress}%</span>
             </div>
             {job.estimatedTimeMs && (
-              <p className="text-xs text-muted-foreground">
+              <p className="font-mono text-xs text-muted-foreground">
                 Estimated time: {formatDuration(job.estimatedTimeMs)}
               </p>
             )}
@@ -155,7 +155,7 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
 
         {/* Completed info */}
         {job.status === 'COMPLETED' && job.processingTimeMs && (
-          <p className="text-sm text-muted-foreground">
+          <p className="font-mono text-sm text-muted-foreground">
             Completed in {formatDuration(job.processingTimeMs)}
           </p>
         )}
@@ -165,7 +165,7 @@ export function ProgressTracker({ jobId, onComplete, onError }: ProgressTrackerP
           {job.status === 'COMPLETED' && job.downloadUrl && (
             <Button asChild className="w-full">
               <a href={job.downloadUrl} download>
-                <Download className="mr-2 h-4 w-4" />
+                <Download className="mr-2 h-4 w-4" strokeWidth={1.5} />
                 Download
               </a>
             </Button>
