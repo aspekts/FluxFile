@@ -104,6 +104,7 @@ export async function POST(request: Request) {
         jobId: job.id,
         userId: userId || undefined,
         inputFileKey,
+        inputFormat,
         outputFormat,
         inputFileSize,
         qualityPreset,

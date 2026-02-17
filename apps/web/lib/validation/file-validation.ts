@@ -73,11 +73,11 @@ export function validateConversion(
     return { valid: false, error: `No conversion rules for category: ${category}` };
   }
 
-  if (!compatibility.input.includes(inputFormat as never)) {
+  if (!compatibility.inputs.includes(inputFormat as never)) {
     return { valid: false, error: `${inputFormat} is not a supported input format.` };
   }
 
-  if (!compatibility.output.includes(outputFormat as never)) {
+  if (!compatibility.outputs.includes(outputFormat as never)) {
     return {
       valid: false,
       error: `${outputFormat} is not a supported output format for ${category} files.`,

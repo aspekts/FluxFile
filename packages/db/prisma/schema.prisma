@@ -48,7 +48,7 @@ model Session {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionToken String   @unique
+  token        String   @unique
   expiresAt    DateTime
   ipAddress    String?
   userAgent    String?
@@ -57,7 +57,7 @@ model Session {
   updatedAt    DateTime @updatedAt
   
   @@index([userId])
-  @@index([sessionToken])
+  @@index([token])
 }
 
 model Account {
@@ -65,8 +65,8 @@ model Account {
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  provider          String
-  providerAccountId String
+  providerId        String
+  accountId         String
   
   accessToken       String?  @db.Text
   refreshToken      String?  @db.Text
@@ -75,7 +75,7 @@ model Account {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
   @@index([userId])
 }
 
@@ -91,6 +91,19 @@ model VerificationToken {
   @@index([email])
   @@index([token])
 }
+
+// BetterAuth verification table for magic links
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([identifier])
+}
+
 
 // ========================================
 // CONVERSION JOBS

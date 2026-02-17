@@ -12,7 +12,7 @@ export function getOutputFormats(inputFormat: string): string[] {
   if (!compatibility) return [];
 
   // Return all outputs except the input format itself
-  return compatibility.output.filter((f: string) => f !== inputFormat);
+  return compatibility.outputs.filter((f: string) => f !== inputFormat);
 }
 
 /**
@@ -20,10 +20,10 @@ export function getOutputFormats(inputFormat: string): string[] {
  */
 export function getSupportedFormats(): Record<FormatCategory, string[]> {
   return {
-    audio: FORMAT_COMPATIBILITY.audio.input as unknown as string[],
-    video: FORMAT_COMPATIBILITY.video.input as unknown as string[],
-    document: FORMAT_COMPATIBILITY.document.input as unknown as string[],
-    image: FORMAT_COMPATIBILITY.image.input as unknown as string[],
+    audio: FORMAT_COMPATIBILITY.audio.inputs as unknown as string[],
+    video: FORMAT_COMPATIBILITY.video.inputs as unknown as string[],
+    document: FORMAT_COMPATIBILITY.document.inputs as unknown as string[],
+    image: FORMAT_COMPATIBILITY.image.inputs as unknown as string[],
   };
 }
 
@@ -41,7 +41,7 @@ export function getAcceptedMimeTypes(): Record<string, string[]> {
   const accept: Record<string, string[]> = {};
 
   for (const category of ['audio', 'video', 'document', 'image'] as FormatCategory[]) {
-    const formats = FORMAT_COMPATIBILITY[category].input;
+    const formats = FORMAT_COMPATIBILITY[category].inputs;
     for (const format of formats) {
       const mimeTypes = getMimeTypes(format as string);
       for (const mimeType of mimeTypes) {
