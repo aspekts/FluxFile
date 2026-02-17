@@ -17,6 +17,11 @@ export const r2Client = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
+  // Cloudflare R2 does not support the CRC32 request checksums that
+  // AWS SDK v3.568+ adds by default. Disabling them prevents
+  // SignatureDoesNotMatch errors on presigned URLs.
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
 });
 
 export const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'fluxfile';

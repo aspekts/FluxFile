@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { generateUploadUrl } from '@fluxfile/storage';
 import { getServerSession } from '@/lib/auth/session';
 import { validateFile } from '@/lib/validation/file-validation';
-import { v4 as uuidv4 } from 'crypto';
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();

@@ -17,6 +17,11 @@ export async function generateUploadUrl(
 
   const url = await getSignedUrl(r2Client, command, {
     expiresIn: PRESIGNED_URL_EXPIRY,
+    // Only sign the host header. This prevents SDK-injected headers
+    // (like x-amz-checksum-crc32) from being included in the signature,
+    // which would cause SignatureDoesNotMatch when the browser makes the
+    // actual PUT request without those headers.
+    signableHeaders: new Set(['host']),
   });
 
   return { url, key: fullKey };
