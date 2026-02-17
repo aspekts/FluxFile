@@ -77,11 +77,12 @@ FROM base AS production
 WORKDIR /app
 
 # Copy built artifacts and production dependencies
-# NOTE: node_modules must come from 'build' stage (not 'deps') so that
-# pnpm workspace symlinks resolve to directories that contain dist/ output.
+# With node-linker=hoisted, workspace packages are linked under
+# apps/worker/node_modules/@fluxfile/*, so we must copy that too.
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
+COPY --from=build /app/apps/worker/node_modules ./apps/worker/node_modules
 COPY --from=build /app/apps/worker/package.json ./apps/worker/
 COPY --from=build /app/package.json ./
 COPY --from=build /app/pnpm-workspace.yaml ./
