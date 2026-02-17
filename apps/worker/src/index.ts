@@ -120,7 +120,7 @@ async function processConversionJob(job: Job<ConversionJobData>): Promise<{ succ
       data: {
         status: 'FAILED',
         errorMessage: errorMessage.slice(0, 1000),
-        errorType,
+        errorType: errorType as any,
         completedAt: new Date(),
         workerId: WORKER_ID,
       },
@@ -211,7 +211,7 @@ function classifyError(message: string): string {
 // ── Create the BullMQ Worker ──
 
 const worker = new Worker<ConversionJobData>(QUEUE_NAMES.CONVERSION, processConversionJob, {
-  connection: redisConnection,
+  connection: redisConnection as any,
   concurrency: 5,
   lockDuration: 30 * 60 * 1000, // 30 minutes max per job
   lockRenewTime: 15 * 1000, // Renew lock every 15 seconds

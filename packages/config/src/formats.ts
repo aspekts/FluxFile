@@ -64,7 +64,7 @@ export const FORMAT_MIME_TYPES: Record<ConversionFormat, string[]> = {
 
 export function getFormatCategory(format: ConversionFormat): FormatCategory {
   for (const [category, { inputs }] of Object.entries(FORMAT_COMPATIBILITY)) {
-    if (inputs.includes(format as any)) {
+    if ((inputs as readonly string[]).includes(format)) {
       return category as FormatCategory;
     }
   }
@@ -80,5 +80,5 @@ export function isValidConversion(input: ConversionFormat, output: ConversionFor
   }
 
   const { outputs } = FORMAT_COMPATIBILITY[inputCategory];
-  return outputs.includes(output as any);
+  return (outputs as readonly string[]).includes(output);
 }

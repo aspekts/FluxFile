@@ -1,9 +1,5 @@
-import type {
-  ConversionFormat,
-  QualityPreset,
-  ConversionSettings,
-  ConversionJob,
-} from './conversion';
+import type { ConversionFormat } from './formats';
+import type { QualityPreset, ConversionSettings, ConversionJob } from './conversion';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;

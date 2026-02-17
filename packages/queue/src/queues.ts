@@ -4,7 +4,7 @@ import { QUEUE_NAMES } from '@fluxfile/config';
 import type { ConversionJobData } from './types';
 
 const queueOptions: QueueOptions = {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

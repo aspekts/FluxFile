@@ -1,14 +1,16 @@
+import type sharp from 'sharp';
 import type { ConversionSettings, ImageFormat } from '@fluxfile/types';
 import { IMAGE_PRESETS } from '@fluxfile/config';
 
 // Sharp is imported dynamically to avoid issues when it's not installed
-let sharpModule: typeof import('sharp') | null = null;
+let sharpModule: typeof sharp | null = null;
 
-async function getSharp() {
+async function getSharp(): Promise<typeof sharp> {
   if (!sharpModule) {
-    sharpModule = await import('sharp');
+    const mod = await import('sharp');
+    sharpModule = (mod as any).default || mod;
   }
-  return sharpModule.default;
+  return sharpModule!;
 }
 
 export interface ImageConversionResult {
