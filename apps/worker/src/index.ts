@@ -38,7 +38,6 @@ async function processConversionJob(job: Job<ConversionJobData>): Promise<{ succ
   try {
     // ── Stage 1: Update status to PROCESSING ──
     await updateJobStatus(jobId, 'PROCESSING', 0, 'Initializing');
-    await job.updateProgress(5);
 
     // ── Stage 2: Download input file from R2 ──
     await updateJobStage(jobId, 'Downloading input file');
@@ -52,9 +51,12 @@ async function processConversionJob(job: Job<ConversionJobData>): Promise<{ succ
 
     // ── Stage 3: Run format-specific conversion ──
     let result: ProcessorResult;
+    // Throttle progress updates to every 20% to reduce Redis commands
     const progressCallback = async (percent: number) => {
-      await job.updateProgress(percent);
-      await updateJobProgress(jobId, percent, 'Converting');
+      if (percent % 20 === 0 || percent === 100) {
+        await job.updateProgress(percent);
+        await updateJobProgress(jobId, percent, 'Converting');
+      }
     };
 
     switch (category) {
@@ -82,8 +84,6 @@ async function processConversionJob(job: Job<ConversionJobData>): Promise<{ succ
     const outputBuffer = fs.readFileSync(result.outputPath);
     const contentType = getMimeType(outputFormat);
     await uploadFile(outputKey, outputBuffer, contentType);
-
-    await job.updateProgress(95);
 
     // ── Stage 5: Update job as completed ──
     const downloadExpiresAt = new Date(Date.now() + DOWNLOAD_EXPIRY_HOURS * 60 * 60 * 1000);
@@ -214,7 +214,7 @@ const worker = new Worker<ConversionJobData>(QUEUE_NAMES.CONVERSION, processConv
   connection: redisConnection as any,
   concurrency: 5,
   lockDuration: 30 * 60 * 1000, // 30 minutes max per job
-  lockRenewTime: 15 * 1000, // Renew lock every 15 seconds
+  lockRenewTime: 30 * 1000, // Renew lock every 30 seconds (balanced for Railway Redis)
 });
 
 // ── Worker event handlers ──

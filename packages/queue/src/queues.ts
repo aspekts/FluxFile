@@ -12,11 +12,11 @@ const queueOptions: QueueOptions = {
       delay: 2000,
     },
     removeOnComplete: {
-      age: 86400, // 24 hours
-      count: 1000,
+      age: 7200, // 2 hours (balanced - job data is in PostgreSQL but useful for debugging)
+      count: 500, // Keep moderate number of completed jobs for monitoring
     },
     removeOnFail: {
-      age: 604800, // 7 days
+      age: 172800, // 2 days (better debugging window for failures)
     },
   },
 };
