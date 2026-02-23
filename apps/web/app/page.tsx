@@ -39,7 +39,7 @@ type ConversionState = 'idle' | 'uploading' | 'converting' | 'complete' | 'error
 export default function HomePage() {
   // Get user session and tier
   const { data: session } = useSession();
-  const tier: AccountTier = (session?.user as any)?.accountTier || 'ANONYMOUS';
+  const tier: AccountTier = (session?.user?.accountTier as AccountTier) || 'ANONYMOUS';
   const tierLimits = TIER_LIMITS[tier];
   const maxBatchSize = tierLimits.batchSize;
 

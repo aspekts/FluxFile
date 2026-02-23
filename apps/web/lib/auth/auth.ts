@@ -19,6 +19,21 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: false,
   },
+  user: {
+    // Map custom fields from our Prisma schema to be included in the session
+    additionalFields: {
+      accountTier: {
+        type: 'string',
+        defaultValue: 'FREE',
+        input: false, // Not settable by the user
+      },
+      role: {
+        type: 'string',
+        defaultValue: 'USER',
+        input: false,
+      },
+    },
+  },
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
