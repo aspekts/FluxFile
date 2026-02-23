@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     take: 20,
     select: {
       id: true,
+      originalFileName: true,
       inputFormat: true,
       outputFormat: true,
       inputFileSize: true,

@@ -13,6 +13,7 @@ import { formatFileSize, formatDate, formatDuration } from '@/lib/utils';
 
 interface Job {
   id: string;
+  originalFileName: string | null;
   inputFormat: string;
   outputFormat: string;
   inputFileSize: string;
@@ -68,6 +69,9 @@ export function ConversionHistory({ jobs }: ConversionHistoryProps) {
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            File
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Conversion
           </TableHead>
           <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -87,6 +91,12 @@ export function ConversionHistory({ jobs }: ConversionHistoryProps) {
       <TableBody>
         {jobs.map((job) => (
           <TableRow key={job.id}>
+            <TableCell
+              className="max-w-[200px] truncate text-sm"
+              title={job.originalFileName || undefined}
+            >
+              {job.originalFileName || <span className="text-muted-foreground">—</span>}
+            </TableCell>
             <TableCell className="font-mono text-sm font-medium">
               {job.inputFormat.toUpperCase()} &rarr; {job.outputFormat.toUpperCase()}
             </TableCell>
