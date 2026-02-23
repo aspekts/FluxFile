@@ -11,16 +11,22 @@ export interface DocumentConversionResult {
 
 /**
  * Map output format to the LibreOffice filter name.
+ * LibreOffice requires specific filter names, not just extensions.
+ * See: https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html
  */
-function getLibreOfficeFilter(outputFormat: DocumentFormat): string {
+function getLibreOfficeFilter(outputFormat: DocumentFormat, inputFormat?: string): string {
+  // For text output, we need different filters based on input type
+  if (outputFormat === 'txt') {
+    return 'Text (encoded):UTF8';
+  }
+
   const filterMap: Record<string, string> = {
     pdf: 'pdf',
-    docx: 'docx',
-    xlsx: 'xlsx',
-    txt: 'txt',
-    csv: 'csv',
-    odt: 'odt',
-    rtf: 'rtf',
+    docx: 'MS Word 2007 XML',
+    xlsx: 'Calc MS Excel 2007 XML',
+    csv: 'Text - txt - csv (StarCalc)',
+    odt: 'writer8',
+    rtf: 'Rich Text Format',
   };
   return filterMap[outputFormat] || outputFormat;
 }
@@ -30,6 +36,38 @@ function getLibreOfficeFilter(outputFormat: DocumentFormat): string {
  */
 function getOutputExtension(outputFormat: DocumentFormat): string {
   return outputFormat;
+}
+
+/**
+ * Recursively search for a file with the given extension in a directory.
+ */
+function findOutputFile(
+  searchDirs: string[],
+  inputBasename: string,
+  expectedExt: string,
+  inputFileName: string
+): string | null {
+  for (const dir of searchDirs) {
+    if (!fs.existsSync(dir)) continue;
+
+    try {
+      const files = fs.readdirSync(dir);
+      // First, try exact match
+      const exactMatch = `${inputBasename}.${expectedExt}`;
+      if (files.includes(exactMatch)) {
+        return path.join(dir, exactMatch);
+      }
+
+      // Then try any file with the right extension that's not the input
+      const matchingFile = files.find((f) => f.endsWith(`.${expectedExt}`) && f !== inputFileName);
+      if (matchingFile) {
+        return path.join(dir, matchingFile);
+      }
+    } catch (e) {
+      // Directory not readable, skip
+    }
+  }
+  return null;
 }
 
 /**
@@ -58,6 +96,15 @@ export async function convertDocument(
 
   const filter = getLibreOfficeFilter(outputFormat);
 
+  // Ensure we use absolute paths (LibreOffice can have issues with relative paths)
+  const absOutputDir = path.resolve(outputDir);
+  const absInputPath = path.resolve(inputPath);
+
+  // Ensure output directory exists
+  if (!fs.existsSync(absOutputDir)) {
+    fs.mkdirSync(absOutputDir, { recursive: true });
+  }
+
   // Build LibreOffice command arguments
   const args: string[] = [
     '--headless',
@@ -67,9 +114,11 @@ export async function convertDocument(
     '--convert-to',
     filter,
     '--outdir',
-    outputDir,
-    inputPath,
+    absOutputDir,
+    absInputPath,
   ];
+
+  console.log(`LibreOffice command: libreoffice ${args.join(' ')}`);
 
   onProgress?.(20);
 
@@ -77,6 +126,11 @@ export async function convertDocument(
     // Try common LibreOffice binary names
     const binaryNames = ['libreoffice', 'soffice', '/usr/bin/libreoffice', '/usr/bin/soffice'];
     let binaryToUse = binaryNames[0];
+
+    // On macOS, try the app bundle path
+    if (process.platform === 'darwin') {
+      binaryNames.push('/Applications/LibreOffice.app/Contents/MacOS/soffice');
+    }
 
     // On Windows, try additional paths
     if (process.platform === 'win32') {
@@ -86,10 +140,17 @@ export async function convertDocument(
       );
     }
 
+    // Create a temporary user profile directory to avoid conflicts
+    const userProfileDir = path.join(absOutputDir, '.libreoffice-profile');
+    if (!fs.existsSync(userProfileDir)) {
+      fs.mkdirSync(userProfileDir, { recursive: true });
+    }
+
     const proc = spawn(binaryToUse, args, {
+      cwd: absOutputDir, // Run from the output directory
       env: {
         ...process.env,
-        HOME: outputDir, // Prevents lock file issues in containers
+        HOME: userProfileDir, // Use dedicated profile dir to prevent lock issues
       },
     });
 
@@ -97,15 +158,23 @@ export async function convertDocument(
     let stdoutOutput = '';
 
     proc.stdout?.on('data', (data: Buffer) => {
-      stdoutOutput += data.toString();
+      const text = data.toString();
+      stdoutOutput += text;
+      console.log(`LibreOffice stdout: ${text}`);
       onProgress?.(50);
     });
 
     proc.stderr?.on('data', (data: Buffer) => {
-      stderrOutput += data.toString();
+      const text = data.toString();
+      stderrOutput += text;
+      console.log(`LibreOffice stderr: ${text}`);
     });
 
-    proc.on('close', (code) => {
+    proc.on('close', async (code) => {
+      console.log(`LibreOffice exited with code: ${code}`);
+      console.log(`LibreOffice stdout: ${stdoutOutput}`);
+      console.log(`LibreOffice stderr: ${stderrOutput}`);
+
       if (code !== 0) {
         reject(new Error(`LibreOffice exited with code ${code}: ${stderrOutput || stdoutOutput}`));
         return;
@@ -114,44 +183,64 @@ export async function convertDocument(
       onProgress?.(80);
 
       // Find the output file - LibreOffice names it based on the input filename
-      const inputBasename = path.basename(inputPath, path.extname(inputPath));
+      const inputBasename = path.basename(absInputPath, path.extname(absInputPath));
+      const inputFileName = path.basename(absInputPath);
       const expectedExt = getOutputExtension(outputFormat);
-      const expectedOutput = path.join(outputDir, `${inputBasename}.${expectedExt}`);
+      const inputDir = path.dirname(absInputPath);
 
-      if (!fs.existsSync(expectedOutput)) {
-        // Sometimes LibreOffice uses a slightly different naming - scan the directory
-        const files = fs.readdirSync(outputDir);
-        const matchingFile = files.find(
-          (f) =>
-            f.startsWith(inputBasename) &&
-            f.endsWith(`.${expectedExt}`) &&
-            f !== path.basename(inputPath)
-        );
+      // Search in multiple locations where LibreOffice might have put the file
+      const searchDirs = [
+        absOutputDir, // Specified output directory
+        inputDir, // Same directory as input file
+        process.cwd(), // Current working directory
+      ];
 
-        if (matchingFile) {
-          const foundPath = path.join(outputDir, matchingFile);
+      // LibreOffice sometimes takes a moment to write the file - wait and retry
+      const maxRetries = 5;
+      const retryDelay = 500; // ms
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        if (attempt > 0) {
+          console.log(`Retry ${attempt}/${maxRetries} - waiting for output file...`);
+          await new Promise((r) => setTimeout(r, retryDelay));
+        }
+
+        console.log(`Searching for output file in: ${searchDirs.join(', ')}`);
+        console.log(`Looking for: ${inputBasename}.${expectedExt}`);
+
+        // List contents of each directory for debugging
+        for (const dir of searchDirs) {
+          if (fs.existsSync(dir)) {
+            try {
+              const files = fs.readdirSync(dir);
+              console.log(`Contents of ${dir}: ${files.join(', ') || '(empty)'}`);
+            } catch (e) {
+              console.log(`Cannot read ${dir}: ${e}`);
+            }
+          }
+        }
+
+        const foundPath = findOutputFile(searchDirs, inputBasename, expectedExt, inputFileName);
+
+        if (foundPath) {
           const stat = fs.statSync(foundPath);
+          console.log(`Found output file: ${foundPath} (${stat.size} bytes)`);
           onProgress?.(100);
           resolve({
             outputPath: foundPath,
             fileSize: stat.size,
           });
-        } else {
-          reject(
-            new Error(
-              `LibreOffice conversion succeeded but output file not found. Expected: ${expectedOutput}. Directory contents: ${files.join(', ')}`
-            )
-          );
+          return;
         }
-        return;
       }
 
-      const stat = fs.statSync(expectedOutput);
-      onProgress?.(100);
-      resolve({
-        outputPath: expectedOutput,
-        fileSize: stat.size,
-      });
+      reject(
+        new Error(
+          `LibreOffice conversion succeeded but output file not found after ${maxRetries} attempts. ` +
+            `Expected: ${inputBasename}.${expectedExt} in ${searchDirs.join(' or ')}. ` +
+            `stdout: ${stdoutOutput}. stderr: ${stderrOutput}`
+        )
+      );
     });
 
     proc.on('error', (err) => {

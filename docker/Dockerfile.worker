@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-impress \
     # ImageMagick for additional image processing
     imagemagick \
+    # Poppler utils for PDF text extraction (pdftotext)
+    poppler-utils \
     # Sharp native dependencies
     libvips-dev \
     # Fonts for document rendering
