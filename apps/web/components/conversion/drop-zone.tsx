@@ -12,6 +12,9 @@ import type { AccountTier } from '@fluxfile/types';
 
 interface DropZoneProps {
   onFileSelect: (file: File) => void;
+  onFilesSelect?: (files: File[]) => void;
+  multiple?: boolean;
+  maxFiles?: number;
   tier?: AccountTier;
   disabled?: boolean;
   className?: string;
@@ -19,12 +22,15 @@ interface DropZoneProps {
 
 export function DropZone({
   onFileSelect,
+  onFilesSelect,
+  multiple = false,
+  maxFiles = 20,
   tier = 'FREE',
   disabled = false,
   className,
 }: DropZoneProps) {
   const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -34,25 +40,49 @@ export function DropZone({
         return;
       }
 
-      const file = acceptedFiles[0];
+      // Validate all files
+      const validFiles: File[] = [];
+      const errors: string[] = [];
 
-      // Validate file
-      const validation = validateFile({ name: file.name, type: file.type, size: file.size }, tier);
+      for (const file of acceptedFiles) {
+        const validation = validateFile(
+          { name: file.name, type: file.type, size: file.size },
+          tier
+        );
+        if (validation.valid) {
+          validFiles.push(file);
+        } else {
+          errors.push(`${file.name}: ${validation.error}`);
+        }
+      }
 
-      if (!validation.valid) {
-        setError(validation.error || 'Invalid file');
+      if (errors.length > 0 && validFiles.length === 0) {
+        setError(errors[0]);
         return;
       }
 
-      setSelectedFile(file);
-      onFileSelect(file);
+      if (errors.length > 0) {
+        setError(`${errors.length} file(s) skipped due to validation errors`);
+      }
+
+      if (multiple) {
+        // Limit total files
+        const totalFiles = [...selectedFiles, ...validFiles].slice(0, maxFiles);
+        setSelectedFiles(totalFiles);
+        onFilesSelect?.(totalFiles);
+      } else {
+        const file = validFiles[0];
+        setSelectedFiles([file]);
+        onFileSelect(file);
+      }
     },
-    [onFileSelect, tier]
+    [onFileSelect, onFilesSelect, multiple, maxFiles, selectedFiles, tier]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: false,
+    multiple,
+    maxFiles: multiple ? maxFiles : 1,
     disabled,
     accept: getAcceptedMimeTypes(),
     onDropRejected: (fileRejections) => {
@@ -63,9 +93,22 @@ export function DropZone({
     },
   });
 
-  const removeFile = () => {
-    setSelectedFile(null);
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    if (multiple) {
+      onFilesSelect?.(newFiles);
+    } else if (newFiles.length === 0) {
+      setError(null);
+    }
+  };
+
+  const removeAllFiles = () => {
+    setSelectedFiles([]);
     setError(null);
+    if (multiple) {
+      onFilesSelect?.([]);
+    }
   };
 
   return (
@@ -77,22 +120,56 @@ export function DropZone({
         </Alert>
       )}
 
-      {selectedFile ? (
-        <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <FileType2 className="h-5 w-5 text-primary" strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{selectedFile.name}</p>
-              <p className="font-mono text-xs text-muted-foreground">
-                {formatFileSize(selectedFile.size)}
-              </p>
+      {selectedFiles.length > 0 ? (
+        <div className="space-y-2">
+          {/* File list */}
+          <div className="max-h-[300px] space-y-2 overflow-y-auto rounded-xl border border-border/60 bg-background p-3">
+            {selectedFiles.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className="flex items-center justify-between rounded-lg bg-accent/30 p-3"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <FileType2 className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{file.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {formatFileSize(file.size)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => removeFile(index)}
+                >
+                  <X className="h-4 w-4" strokeWidth={1.5} />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected
+              {multiple && ` (max ${maxFiles})`}
+            </p>
+            <div className="flex gap-2">
+              {multiple && selectedFiles.length < maxFiles && (
+                <Button variant="outline" size="sm" {...getRootProps()}>
+                  <input {...getInputProps()} />
+                  Add more
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={removeAllFiles}>
+                Clear all
+              </Button>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={removeFile}>
-            <X className="h-4 w-4" strokeWidth={1.5} />
-          </Button>
         </div>
       ) : (
         <div
@@ -114,11 +191,14 @@ export function DropZone({
             strokeWidth={1.5}
           />
           <p className="mb-1 text-base font-medium">
-            {isDragActive ? 'Drop your file here' : 'Drag & drop a file here'}
+            {isDragActive
+              ? `Drop your file${multiple ? 's' : ''} here`
+              : `Drag & drop ${multiple ? 'files' : 'a file'} here`}
           </p>
           <p className="text-sm text-muted-foreground">or click to browse your files</p>
           <p className="mt-6 text-xs text-muted-foreground">
             Supports audio, video, document, and image files
+            {multiple && ` (up to ${maxFiles} files)`}
           </p>
         </div>
       )}

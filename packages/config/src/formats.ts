@@ -62,13 +62,15 @@ export const FORMAT_MIME_TYPES: Record<ConversionFormat, string[]> = {
   ico: ['image/x-icon'],
 };
 
-export function getFormatCategory(format: ConversionFormat): FormatCategory {
+export function getFormatCategory(format: ConversionFormat): FormatCategory;
+export function getFormatCategory(format: string): FormatCategory | null;
+export function getFormatCategory(format: string): FormatCategory | null {
   for (const [category, { inputs }] of Object.entries(FORMAT_COMPATIBILITY)) {
     if ((inputs as readonly string[]).includes(format)) {
       return category as FormatCategory;
     }
   }
-  throw new Error(`Unknown format: ${format}`);
+  return null;
 }
 
 export function isValidConversion(input: ConversionFormat, output: ConversionFormat): boolean {

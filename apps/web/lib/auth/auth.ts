@@ -15,9 +15,9 @@ export const auth = betterAuth({
     provider: 'postgresql',
   }),
   // Disable the default email verification since magic links handle auth
+  // By not providing sendVerificationEmail, no verification emails will be sent
   emailVerification: {
-    sendVerificationEmail: false,
-    autoSignInAfterVerification: true,
+    sendOnSignUp: false,
   },
   plugins: [
     magicLink({
@@ -56,7 +56,6 @@ export const auth = betterAuth({
         });
       },
       expiresIn: 300, // 5 minutes
-      autoSignIn: true, // Automatically sign in after magic link verification
     }),
   ],
   session: {

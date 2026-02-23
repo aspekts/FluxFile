@@ -56,11 +56,13 @@ export default async function DashboardPage() {
     },
   });
 
-  // Serialize BigInts
+  // Serialize BigInts and Dates for client component
   const serializedJobs = recentJobs.map((job) => ({
     ...job,
     inputFileSize: job.inputFileSize.toString(),
     outputFileSize: job.outputFileSize?.toString() || null,
+    createdAt: job.createdAt.toISOString(),
+    completedAt: job.completedAt?.toISOString() || null,
   }));
 
   return (

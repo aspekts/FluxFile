@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { DropZone } from '@/components/conversion/drop-zone';
 import { FormatSelector } from '@/components/conversion/format-selector';
 import { ProgressTracker } from '@/components/conversion/progress-tracker';
+import { BulkProgressTracker, type BulkJob } from '@/components/conversion/bulk-progress-tracker';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,12 +18,35 @@ import {
 } from '@/components/ui/select';
 import { requestUploadUrl, uploadFileToR2 } from '@/lib/storage/upload';
 import { getFormatFromMimeType } from '@/lib/validation/file-validation';
-import { ArrowRight, Sparkles, Shield, Clock, Music, Film, FileText, Image } from 'lucide-react';
+import { useSession } from '@/lib/auth/client';
+import { TIER_LIMITS } from '@fluxfile/config';
+import type { AccountTier } from '@fluxfile/types';
+import {
+  ArrowRight,
+  Sparkles,
+  Shield,
+  Clock,
+  Music,
+  Film,
+  FileText,
+  Image,
+  Files,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 type ConversionState = 'idle' | 'uploading' | 'converting' | 'complete' | 'error';
 
 export default function HomePage() {
+  // Get user session and tier
+  const { data: session } = useSession();
+  const tier: AccountTier = (session?.user as any)?.accountTier || 'ANONYMOUS';
+  const tierLimits = TIER_LIMITS[tier];
+  const maxBatchSize = tierLimits.batchSize;
+
+  // Mode toggle
+  const [bulkMode, setBulkMode] = useState(false);
+
+  // Single file state
   const [file, setFile] = useState<File | null>(null);
   const [inputFormat, setInputFormat] = useState<string>('');
   const [outputFormat, setOutputFormat] = useState<string>('');
@@ -29,6 +55,14 @@ export default function HomePage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  // Bulk file state
+  const [files, setFiles] = useState<File[]>([]);
+  const [bulkJobs, setBulkJobs] = useState<BulkJob[]>([]);
+  const [bulkState, setBulkState] = useState<ConversionState>('idle');
+
+  // Get common input format for bulk mode (all files must be same category)
+  const bulkInputFormat = files.length > 0 ? getFormatFromMimeType(files[0].type) || '' : '';
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
@@ -40,6 +74,13 @@ export default function HomePage() {
     setState('idle');
     setJobId(null);
     setDownloadUrl(null);
+  }, []);
+
+  const handleFilesSelect = useCallback((selectedFiles: File[]) => {
+    setFiles(selectedFiles);
+    setOutputFormat('');
+    setBulkState('idle');
+    setBulkJobs([]);
   }, []);
 
   const handleConvert = async () => {
@@ -85,22 +126,136 @@ export default function HomePage() {
     }
   };
 
+  const handleBulkConvert = async () => {
+    if (files.length === 0 || !outputFormat) {
+      toast.error('Please select files and an output format');
+      return;
+    }
+
+    setBulkState('uploading');
+
+    // Initialize bulk jobs
+    const initialJobs: BulkJob[] = files.map((f, index) => ({
+      id: `temp-${index}`,
+      fileName: f.name,
+      status: 'uploading',
+      progress: 0,
+      uploadProgress: 0,
+      inputFormat: getFormatFromMimeType(f.type) || '',
+      outputFormat,
+    }));
+    setBulkJobs(initialJobs);
+
+    // Process files concurrently (with limit)
+    const concurrencyLimit = 3;
+    const results: BulkJob[] = [...initialJobs];
+
+    const processFile = async (file: File, index: number) => {
+      try {
+        // Upload
+        const { url, key } = await requestUploadUrl(file.name, file.type);
+
+        await uploadFileToR2(url, file, (progress) => {
+          setBulkJobs((prev) =>
+            prev.map((j, i) => (i === index ? { ...j, uploadProgress: progress } : j))
+          );
+        });
+
+        // Update status to queued
+        setBulkJobs((prev) =>
+          prev.map((j, i) => (i === index ? { ...j, status: 'queued', uploadProgress: 100 } : j))
+        );
+
+        // Create job
+        const jobResponse = await fetch('/api/jobs/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputFileKey: key,
+            originalFileName: file.name,
+            inputFormat: getFormatFromMimeType(file.type),
+            outputFormat,
+            inputFileSize: file.size,
+            qualityPreset,
+          }),
+        });
+
+        if (!jobResponse.ok) {
+          const error = await jobResponse.json();
+          throw new Error(error.error || 'Failed to create job');
+        }
+
+        const { jobId } = await jobResponse.json();
+
+        // Update with real job ID
+        setBulkJobs((prev) =>
+          prev.map((j, i) => (i === index ? { ...j, id: jobId, status: 'queued' } : j))
+        );
+
+        results[index] = { ...results[index], id: jobId, status: 'queued' };
+      } catch (error) {
+        setBulkJobs((prev) =>
+          prev.map((j, i) =>
+            i === index
+              ? {
+                  ...j,
+                  status: 'failed',
+                  errorMessage: error instanceof Error ? error.message : 'Upload failed',
+                }
+              : j
+          )
+        );
+        results[index] = {
+          ...results[index],
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Upload failed',
+        };
+      }
+    };
+
+    // Process in batches
+    for (let i = 0; i < files.length; i += concurrencyLimit) {
+      const batch = files.slice(i, i + concurrencyLimit);
+      await Promise.all(batch.map((file, batchIndex) => processFile(file, i + batchIndex)));
+    }
+
+    setBulkState('converting');
+  };
+
+  const handleJobUpdate = useCallback((jobId: string, updates: Partial<BulkJob>) => {
+    setBulkJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, ...updates } : j)));
+  }, []);
+
   const handleConversionComplete = (url: string) => {
     setState('complete');
     setDownloadUrl(url);
     toast.success('Conversion complete! Your file is ready to download.');
   };
 
+  const handleBulkComplete = useCallback(() => {
+    setBulkState('complete');
+    toast.success('All conversions complete!');
+  }, []);
+
   const handleReset = () => {
     setFile(null);
+    setFiles([]);
     setInputFormat('');
     setOutputFormat('');
     setQualityPreset('standard');
     setState('idle');
+    setBulkState('idle');
     setUploadProgress(0);
     setJobId(null);
     setDownloadUrl(null);
+    setBulkJobs([]);
   };
+
+  const isProcessing =
+    state === 'uploading' ||
+    state === 'converting' ||
+    bulkState === 'uploading' ||
+    bulkState === 'converting';
 
   return (
     <div>
@@ -118,14 +273,45 @@ export default function HomePage() {
 
         {/* Conversion Interface */}
         <div className="mt-12 space-y-6">
-          {/* Drop Zone */}
-          <DropZone
-            onFileSelect={handleFileSelect}
-            disabled={state === 'uploading' || state === 'converting'}
-          />
+          {/* Bulk Mode Toggle */}
+          {state === 'idle' && bulkState === 'idle' && (
+            <div className="flex items-center justify-center gap-3">
+              <Label htmlFor="bulk-mode" className="text-sm text-muted-foreground">
+                Single file
+              </Label>
+              <Switch
+                id="bulk-mode"
+                checked={bulkMode}
+                onCheckedChange={(checked) => {
+                  setBulkMode(checked);
+                  handleReset();
+                }}
+              />
+              <Label
+                htmlFor="bulk-mode"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground"
+              >
+                <Files className="h-4 w-4" strokeWidth={1.5} />
+                Bulk convert (up to {maxBatchSize})
+              </Label>
+            </div>
+          )}
 
-          {/* Format Selection */}
-          {file && inputFormat && state === 'idle' && (
+          {/* Drop Zone */}
+          {!bulkMode ? (
+            <DropZone onFileSelect={handleFileSelect} disabled={isProcessing} />
+          ) : (
+            <DropZone
+              onFileSelect={() => {}}
+              onFilesSelect={handleFilesSelect}
+              multiple
+              maxFiles={maxBatchSize}
+              disabled={isProcessing}
+            />
+          )}
+
+          {/* Single File Format Selection */}
+          {!bulkMode && file && inputFormat && state === 'idle' && (
             <div className="space-y-4 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -171,8 +357,61 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Upload Progress */}
-          {state === 'uploading' && (
+          {/* Bulk Format Selection */}
+          {bulkMode && files.length > 0 && bulkInputFormat && bulkState === 'idle' && (
+            <div className="space-y-4 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {files.length} file{files.length !== 1 ? 's' : ''} selected
+                  </p>
+                  <p className="rounded-lg border border-border/60 bg-background p-2.5 text-center font-mono text-sm font-medium">
+                    {bulkInputFormat.toUpperCase()}
+                  </p>
+                </div>
+                <ArrowRight className="mt-5 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <FormatSelector
+                    inputFormat={bulkInputFormat}
+                    selectedFormat={outputFormat}
+                    onFormatChange={setOutputFormat}
+                  />
+                </div>
+              </div>
+
+              {/* Quality Preset */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Quality
+                </label>
+                <Select value={qualityPreset} onValueChange={setQualityPreset}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low — Smaller file</SelectItem>
+                    <SelectItem value="standard">Standard — Balanced</SelectItem>
+                    <SelectItem value="high">High — Best quality</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Convert Button */}
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={handleBulkConvert}
+                disabled={!outputFormat}
+              >
+                <Sparkles className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                Convert {files.length} file{files.length !== 1 ? 's' : ''} to{' '}
+                {outputFormat ? outputFormat.toUpperCase() : '...'}
+              </Button>
+            </div>
+          )}
+
+          {/* Single File Upload Progress */}
+          {!bulkMode && state === 'uploading' && (
             <div className="space-y-3 rounded-xl border border-border/60 bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Uploading...</p>
@@ -187,8 +426,8 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Conversion Progress */}
-          {(state === 'converting' || state === 'complete') && jobId && (
+          {/* Single File Conversion Progress */}
+          {!bulkMode && (state === 'converting' || state === 'complete') && jobId && (
             <ProgressTracker
               jobId={jobId}
               onComplete={handleConversionComplete}
@@ -199,10 +438,22 @@ export default function HomePage() {
             />
           )}
 
+          {/* Bulk Progress Tracker */}
+          {bulkMode && bulkJobs.length > 0 && (
+            <BulkProgressTracker
+              jobs={bulkJobs}
+              onJobUpdate={handleJobUpdate}
+              onAllComplete={handleBulkComplete}
+            />
+          )}
+
           {/* Reset */}
-          {(state === 'complete' || state === 'error') && (
+          {(state === 'complete' ||
+            state === 'error' ||
+            bulkState === 'complete' ||
+            bulkState === 'error') && (
             <Button variant="outline" onClick={handleReset} className="w-full">
-              Convert another file
+              Convert more files
             </Button>
           )}
         </div>
