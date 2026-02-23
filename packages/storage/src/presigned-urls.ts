@@ -27,10 +27,13 @@ export async function generateUploadUrl(
   return { url, key: fullKey };
 }
 
-export async function generateDownloadUrl(key: string): Promise<string> {
+export async function generateDownloadUrl(key: string, filename?: string): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
+    ...(filename && {
+      ResponseContentDisposition: `attachment; filename="${filename}"`,
+    }),
   });
 
   return getSignedUrl(r2Client, command, {

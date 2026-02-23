@@ -15,13 +15,17 @@ export async function POST(request: Request) {
       inputFormat,
       outputFormat,
       inputFileSize,
+      originalFileName,
       qualityPreset = 'standard',
       customSettings,
     } = body;
 
-    if (!inputFileKey || !inputFormat || !outputFormat || !inputFileSize) {
+    if (!inputFileKey || !inputFormat || !outputFormat || !inputFileSize || !originalFileName) {
       return NextResponse.json(
-        { error: 'inputFileKey, inputFormat, outputFormat, and inputFileSize are required' },
+        {
+          error:
+            'inputFileKey, inputFormat, outputFormat, inputFileSize, and originalFileName are required',
+        },
         { status: 400 }
       );
     }
@@ -86,6 +90,7 @@ export async function POST(request: Request) {
       data: {
         userId,
         inputFileKey,
+        originalFileName,
         inputFormat,
         outputFormat,
         inputFileSize: BigInt(inputFileSize),
@@ -104,6 +109,7 @@ export async function POST(request: Request) {
         jobId: job.id,
         userId: userId || undefined,
         inputFileKey,
+        originalFileName,
         inputFormat,
         outputFormat,
         inputFileSize,

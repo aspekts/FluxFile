@@ -4,6 +4,7 @@ export interface ConversionJobData {
   jobId: string;
   userId?: string;
   inputFileKey: string;
+  originalFileName: string;
   inputFormat: ConversionFormat;
   outputFormat: ConversionFormat;
   inputFileSize: number;

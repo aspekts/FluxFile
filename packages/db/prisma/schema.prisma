@@ -116,6 +116,7 @@ model Job {
   
   // File details
   inputFileKey          String
+  originalFileName      String?
   outputFileKey         String?
   inputFormat           String
   outputFormat          String

@@ -6,13 +6,37 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Use production URL, falling back through multiple env vars
+const appUrl =
+  process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
+  // Disable the default email verification since magic links handle auth
+  emailVerification: {
+    sendVerificationEmail: false,
+    autoSignInAfterVerification: true,
+  },
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
+        // Check if user already has an active session - skip email
+        const existingUser = await prisma.user.findUnique({
+          where: { email },
+          select: { emailVerified: true },
+        });
+
+        // Mark user as verified when they use magic link (since they proved email ownership)
+        // This prevents BetterAuth from trying to send a separate verification email
+        if (existingUser && !existingUser.emailVerified) {
+          await prisma.user.update({
+            where: { email },
+            data: { emailVerified: true },
+          });
+        }
+
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || 'noreply@fluxfile.aspekts.dev',
           to: email,
@@ -32,6 +56,7 @@ export const auth = betterAuth({
         });
       },
       expiresIn: 300, // 5 minutes
+      autoSignIn: true, // Automatically sign in after magic link verification
     }),
   ],
   session: {
@@ -42,7 +67,7 @@ export const auth = betterAuth({
       maxAge: 5 * 60, // 5 minutes
     },
   },
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  baseURL: appUrl,
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'],
 });

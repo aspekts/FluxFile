@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@fluxfile/db';
 import { generateDownloadUrl } from '@fluxfile/storage';
 import { getServerSession } from '@/lib/auth/session';
+import * as path from 'path';
 
 export async function GET(request: Request, { params }: { params: Promise<{ jobId: string }> }) {
   try {
@@ -14,6 +15,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ jobI
         userId: true,
         status: true,
         outputFileKey: true,
+        outputFormat: true,
+        originalFileName: true,
         downloadExpiresAt: true,
       },
     });
@@ -42,8 +45,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ jobI
       return NextResponse.json({ error: 'Download link has expired' }, { status: 410 });
     }
 
-    // Generate download URL
-    const downloadUrl = await generateDownloadUrl(job.outputFileKey);
+    // Generate download URL with proper filename
+    let downloadFilename: string | undefined;
+    if (job.originalFileName) {
+      const originalBaseName = path.basename(
+        job.originalFileName,
+        path.extname(job.originalFileName)
+      );
+      downloadFilename = `${originalBaseName}.${job.outputFormat}`;
+    }
+    const downloadUrl = await generateDownloadUrl(job.outputFileKey, downloadFilename);
 
     return NextResponse.json({ downloadUrl });
   } catch (error) {

@@ -51,6 +51,9 @@ export async function convertImage(
 
   onProgress?.(20);
 
+  // Preserve original metadata (EXIF, ICC profile, XMP, etc.)
+  pipeline = pipeline.withMetadata();
+
   // Resize if dimensions are specified
   if (settings.imageWidth || settings.imageHeight) {
     pipeline = pipeline.resize({

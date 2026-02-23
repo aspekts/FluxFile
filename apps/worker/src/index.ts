@@ -27,13 +27,17 @@ console.log(`FluxFile Worker ${WORKER_ID} starting...`);
  */
 async function processConversionJob(job: Job<ConversionJobData>): Promise<{ success: boolean }> {
   const { data } = job;
-  const { jobId, inputFileKey, inputFormat, outputFormat } = data;
+  const { jobId, inputFileKey, inputFormat, outputFormat, originalFileName } = data;
   const category = getFormatCategory(inputFormat);
 
   // Create a temp directory for this job
   const jobTempDir = path.join(TEMP_DIR, jobId);
   const inputPath = path.join(jobTempDir, `input.${inputFormat}`);
   const outputPath = path.join(jobTempDir, `output.${outputFormat}`);
+
+  // Generate output filename based on original filename with new extension
+  const originalBaseName = path.basename(originalFileName, path.extname(originalFileName));
+  const outputFileName = `${originalBaseName}.${outputFormat}`;
 
   try {
     // ── Stage 1: Update status to PROCESSING ──
@@ -80,7 +84,7 @@ async function processConversionJob(job: Job<ConversionJobData>): Promise<{ succ
     await updateJobProgress(jobId, 90, 'Uploading result');
 
     // ── Stage 4: Upload result to R2 ──
-    const outputKey = `${R2_PATHS.RESULTS}${jobId}/output.${outputFormat}`;
+    const outputKey = `${R2_PATHS.RESULTS}${jobId}/${outputFileName}`;
     const outputBuffer = fs.readFileSync(result.outputPath);
     const contentType = getMimeType(outputFormat);
     await uploadFile(outputKey, outputBuffer, contentType);

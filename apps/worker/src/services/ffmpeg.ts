@@ -72,6 +72,9 @@ function buildAudioArgs(
 ): string[] {
   const args: string[] = ['-i', inputPath, '-y'];
 
+  // Preserve metadata from input file
+  args.push('-map_metadata', '0');
+
   // Audio codec mapping
   const codecMap: Partial<Record<AudioFormat, string>> = {
     mp3: 'libmp3lame',
@@ -117,6 +120,9 @@ function buildVideoArgs(
   settings: ConversionSettings
 ): string[] {
   const args: string[] = ['-i', inputPath, '-y'];
+
+  // Preserve metadata from input file
+  args.push('-map_metadata', '0');
 
   // Video codec
   const videoCodec = settings.videoCodec || 'h264';
